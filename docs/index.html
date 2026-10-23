@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Think in you · Frases que llegan cuando no las esperas</title>
+<meta name="description" content="App para Android que te envía frases espirituales a horas al azar, dentro de los tramos que tú eliges, para ir interiorizándolas poco a poco.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Spectral:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EEF0F7;
+    --ink: #221E40;
+    --ink-soft: #5B5878;
+    --lilac: #7D72C3;
+    --lilac-pale: #D9D5F0;
+    --gold: #E3B04B;
+    --gold-ink: #2A1F05;
+    --rule: #D3D6E6;
+
+    /* Cielo: lo redefine el script según la hora del visitante */
+    --sky-a: #14183A;
+    --sky-b: #2B2A5E;
+    --sky-c: #4B3F7E;
+    --on-sky: #F4F2FF;
+    --on-sky-soft: rgba(244, 242, 255, .84);
+
+    --serif: "Spectral", Georgia, serif;
+    --sans: "Figtree", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 1.0625rem/1.6 var(--sans);
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+
+  /* ---------------------------------------------------------------- Cielo */
+  .sky {
+    min-height: 100svh;
+    background: linear-gradient(172deg, var(--sky-a) 0%, var(--sky-b) 52%, var(--sky-c) 100%);
+    color: var(--on-sky);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: 24px clamp(16px, 5vw, 72px) 48px;
+    transition: background 1.2s ease;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 1rem; text-decoration: none;
+  }
+  .brand svg { width: 28px; height: 28px; }
+
+  .sky-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+    align-items: center;
+    gap: clamp(32px, 6vw, 96px);
+    max-width: 1180px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .pitch h1 {
+    font: 300 clamp(2.4rem, 5.4vw, 4.4rem)/1.04 var(--serif);
+    letter-spacing: -.015em;
+    margin: 0 0 22px;
+    max-width: 13ch;
+  }
+  .pitch p {
+    color: var(--on-sky-soft);
+    font-size: 1.125rem;
+    max-width: 34ch;
+    margin: 0 0 32px;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    font: 600 1rem/1 var(--sans);
+    padding: 16px 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .btn-gold { background: var(--gold); color: var(--gold-ink); }
+  .btn-gold:hover { background: #EDC067; }
+  .btn-gold svg { width: 18px; height: 18px; }
+  .btn-ghost {
+    background: transparent; color: var(--on-sky);
+    box-shadow: inset 0 0 0 1.5px var(--on-sky-soft);
+  }
+  .btn-ghost:hover { box-shadow: inset 0 0 0 1.5px var(--on-sky); }
+  .pitch .fine { font-size: .875rem; color: var(--on-sky-soft); margin: 16px 0 0; }
+
+  /* Pantalla de bloqueo */
+  .lock { text-align: center; }
+  .lock-date { font-size: 1rem; color: var(--on-sky-soft); }
+  .lock-time {
+    font: 300 clamp(5rem, 13vw, 9.5rem)/1 var(--sans);
+    letter-spacing: -.04em;
+    margin: 4px 0 36px;
+    font-variant-numeric: tabular-nums;
+  }
+  .notif {
+    text-align: left;
+    max-width: 440px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, .86);
+    color: var(--ink);
+    border-radius: 22px;
+    padding: 16px 18px 20px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 18px 50px -18px rgba(10, 8, 40, .55);
+    transform-origin: top center;
+  }
+  .notif-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .8125rem; color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .notif-head svg { width: 18px; height: 18px; }
+  .notif-head .when { margin-left: auto; }
+  .notif-title { font-weight: 600; font-size: .9375rem; margin-bottom: 4px; }
+  .notif-text {
+    font: 400 1.3rem/1.38 var(--serif);
+    font-style: italic;
+    margin: 0;
+    min-height: 2.76em;
+  }
+
+  .arrive { animation: arrive .7s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(-18px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  .hidden-until { opacity: 0; }
+
+  /* ------------------------------------------------------------ Contenido */
+  main { padding: 0 16px; }
+  .col { max-width: 680px; margin: 0 auto; }
+  section { padding: clamp(64px, 10vw, 112px) 0 0; }
+  h2 {
+    font: 400 clamp(1.9rem, 4vw, 2.6rem)/1.12 var(--serif);
+    letter-spacing: -.01em;
+    margin: 0 0 18px;
+  }
+  .lede { color: var(--ink-soft); margin: 0 0 32px; max-width: 60ch; }
+
+  /* Día de 24 h */
+  .day { position: relative; margin: 8px 0 12px; }
+  .day-track {
+    position: relative; height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(90deg,
+      #2B2A5E 0%, #2B2A5E 22%, #E9B59E 28%, #CFE3F2 40%,
+      #CFE3F2 66%, #C99AB8 76%, #2B2A5E 88%, #2B2A5E 100%);
+    overflow: hidden;
+  }
+  .win {
+    position: absolute; top: 0; bottom: 0;
+    background: rgba(255, 255, 255, .38);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85);
+    border-radius: 10px;
+  }
+  .dot {
+    position: absolute; top: 50%;
+    width: 14px; height: 14px; margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    background: var(--ink);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .9);
+  }
+  .hours {
+    display: flex; justify-content: space-between;
+    font-size: .8125rem; color: var(--ink-soft);
+    margin-top: 8px; font-variant-numeric: tabular-nums;
+  }
+  .day-caption { color: var(--ink-soft); font-size: .9375rem; margin: 14px 0 0; }
+  .day-caption b { color: var(--ink); font-weight: 600; }
+  .link-btn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; color: var(--lilac); text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  /* Aprendizaje gradual */
+  .grow { margin-top: 56px; }
+  .grow h3 { font: 600 1.125rem/1.3 var(--sans); margin: 0 0 6px; }
+  .grow p { color: var(--ink-soft); margin: 0 0 22px; }
+  .seeds {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16px, 1fr));
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .seed {
+    aspect-ratio: 1; border-radius: 50%;
+    background: var(--rule);
+    transition: background .25s, transform .25s;
+  }
+  .seed.on { background: var(--lilac); }
+  .seed.fresh { background: var(--gold); transform: scale(1.15); }
+  .slider-row { display: flex; align-items: center; gap: 16px; }
+  .slider-row label { font-weight: 600; min-width: 5.5ch; font-variant-numeric: tabular-nums; }
+  input[type=range] { flex: 1; accent-color: var(--lilac); }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: .875rem; color: var(--ink-soft); margin-top: 12px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+
+  /* Frases */
+  .phrases {
+    list-style: none; padding: 0; margin: 0;
+    columns: 2 280px; column-gap: 40px;
+  }
+  .phrases li {
+    break-inside: avoid;
+    font: 300 1.125rem/1.5 var(--serif);
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .phrases.short li:nth-child(n+11) { display: none; }
+  .btn-outline { margin-top: 20px; background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--rule); }
+  .btn-outline:hover { box-shadow: inset 0 0 0 1.5px var(--lilac); }
+  .source { font-size: .9375rem; color: var(--ink-soft); margin-top: 24px; }
+
+  /* Instalación */
+  .steps { padding: 0; margin: 0; list-style: none; counter-reset: s; }
+  .steps li {
+    counter-increment: s;
+    display: grid; grid-template-columns: 44px 1fr; gap: 4px 12px;
+    padding: 18px 0; border-top: 1px solid var(--rule);
+  }
+  .steps li::before {
+    content: counter(s);
+    grid-row: span 2;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--lilac-pale); color: var(--ink);
+    font-weight: 600; font-size: .9375rem;
+  }
+  .steps b { font-weight: 600; }
+  .steps span { color: var(--ink-soft); }
+  .install-cta { margin: 28px 0 0; }
+  .install-cta .btn-gold { font-size: 1.0625rem; }
+
+  details {
+    margin-top: 28px;
+    border-radius: 16px;
+    background: #fff;
+    padding: 4px 20px;
+  }
+  summary { cursor: pointer; font-weight: 600; padding: 14px 0; }
+  details p, details ul { color: var(--ink-soft); margin: 0 0 14px; }
+  details ul { padding-left: 20px; }
+
+  footer {
+    max-width: 680px; margin: clamp(72px, 10vw, 120px) auto 0;
+    padding: 28px 16px 48px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft); font-size: .9375rem;
+    display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between;
+  }
+
+  @media (max-width: 860px) {
+    .sky-grid { grid-template-columns: 1fr; gap: 44px; padding-top: 28px; }
+    .lock { order: -1; }
+    .lock-time { margin-bottom: 26px; }
+    .pitch h1 { max-width: 16ch; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .hidden-until { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<header class="sky" id="sky">
+  <a class="brand" href="./" aria-label="Think in you, inicio">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3c2.5 3 2.5 7.5 0 11-2.5-3.5-2.5-8 0-11ZM4 8.5c3.5.5 6.5 3.5 7 7.5-3.5-.2-6.5-3-7-7.5Zm16 0c-3.5.5-6.5 3.5-7 7.5 3.5-.2 6.5-3 7-7.5ZM3 18h18v1.5H3z"/></svg>
+    Think in you
+  </a>
+
+  <div class="sky-grid">
+    <div class="pitch">
+      <h1>Frases que llegan cuando no las esperas</h1>
+      <p>Una app para Android que te envía frases espirituales a horas al azar, en los momentos del día que tú eliges, para que poco a poco se queden contigo.</p>
+      <div class="actions">
+        <a class="btn btn-gold" href="https://github.com/surikata3k/think-in-you/releases/download/latest/ThinkInYou.apk">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3ZM4 19h16v2H4z"/></svg>
+          Descargar para Android
+        </a>
+        <button class="btn btn-ghost" id="another" type="button">Otra frase</button>
+      </div>
+      <p class="fine">Gratis, sin anuncios y sin cuentas. Android 8 o superior.</p>
+    </div>
+
+    <div class="lock" aria-label="Ejemplo de notificación">
+      <div class="lock-date" id="date">&nbsp;</div>
+      <div class="lock-time" id="time" aria-hidden="true">--:--</div>
+      <div class="notif hidden-until" id="notif" role="status" aria-live="polite">
+        <div class="notif-head">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#7D72C3" d="M12 3c2.5 3 2.5 7.5 0 11-2.5-3.5-2.5-8 0-11ZM4 8.5c3.5.5 6.5 3.5 7 7.5-3.5-.2-6.5-3-7-7.5Zm16 0c-3.5.5-6.5 3.5-7 7.5 3.5-.2 6.5-3 7-7.5ZM3 18h18v1.5H3z"/></svg>
+          Think in you
+          <span class="when">ahora</span>
+        </div>
+        <div class="notif-title">Recuerda</div>
+        <p class="notif-text" id="phrase">Respira. Este momento es el único lugar donde la vida sucede.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="col" id="como">
+    <h2>Tú eliges los momentos, el azar elige la hora</h2>
+    <p class="lede">Define uno o varios tramos del día y cuántas frases quieres en cada uno. Cada día la app reparte los avisos a horas distintas dentro de esos tramos, para que nunca se conviertan en una rutina que dejas de ver.</p>
+
+    <div class="day" aria-hidden="true">
+      <div class="day-track" id="track"></div>
+      <div class="hours"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span><span>24 h</span></div>
+    </div>
+    <p class="day-caption">Un día cualquiera con los tramos de serie: <b id="times">…</b>. Mañana, a otras horas. <button class="link-btn" id="reroll" type="button">Ver otro día</button></p>
+
+    <div class="grow">
+      <h3>Pocas frases cada vez, para que se queden</h3>
+      <p>Empiezas con tres. Cada día entra una nueva, y las recién llegadas se repiten más hasta que te las sabes; luego ceden su sitio a las siguientes.</p>
+      <div class="seeds" id="seeds" aria-hidden="true"></div>
+      <div class="slider-row">
+        <label for="day" id="dayLabel">Día 1</label>
+        <input type="range" id="day" min="1" max="60" value="1">
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--gold)"></i>Recién llegada</span>
+        <span><i style="background:var(--lilac)"></i>En práctica</span>
+        <span><i style="background:var(--rule)"></i>Por llegar</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="col" id="frases">
+    <h2 id="count">Las frases</h2>
+    <p class="lede">Son las mismas que lleva la app. Se pueden cambiar en el repositorio: la próxima vez que abras la app, se actualizarán solas, sin perder tu progreso. También puedes añadir las tuyas desde la propia app.</p>
+    <ul class="phrases" id="list"></ul>
+    <button class="btn btn-outline" id="more" type="button" hidden>Ver todas</button>
+    <p class="source">Fichero de frases: <a href="https://github.com/surikata3k/think-in-you/blob/main/docs/frases.txt">docs/frases.txt</a></p>
+  </section>
+
+  <section class="col" id="instalar">
+    <h2>Instalarla en tu móvil</h2>
+    <p class="lede">La app no está en Play Store, así que se instala directamente desde aquí.</p>
+    <ol class="steps">
+      <li><b>Descarga el archivo desde el móvil</b><span>Pulsa el botón de abajo; se guarda ThinkInYou.apk (unos 650 KB).</span></li>
+      <li><b>Ábrelo y permite la instalación</b><span>Android te pedirá permiso para instalar apps desde el navegador. Acéptalo solo para esta vez.</span></li>
+      <li><b>Abre Think in you y acepta las notificaciones</b><span>Ajusta tus tramos horarios y pulsa «Probar aviso» para ver cómo llegan.</span></li>
+      <li><b>Quita las restricciones de batería</b><span>En Ajustes → Apps → Think in you → Batería, elige «Sin restricciones», para que el móvil no frene los avisos.</span></li>
+    </ol>
+    <p class="install-cta">
+      <a class="btn btn-gold" href="https://github.com/surikata3k/think-in-you/releases/download/latest/ThinkInYou.apk">
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="18" height="18"><path fill="currentColor" d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3ZM4 19h16v2H4z"/></svg>
+        Descargar ThinkInYou.apk
+      </a>
+    </p>
+
+    <details>
+      <summary>Si aparece «Aplicación bloqueada para proteger tu dispositivo»</summary>
+      <p>Es Google Play Protect, que bloquea por precaución las apps que no vienen de Play Store.</p>
+      <ul>
+        <li>Pulsa <b>Más detalles</b> y después <b>Instalar de todos modos</b>.</li>
+        <li>Si no aparece esa opción: abre Play Store, toca tu foto, entra en Play Protect → ajustes, desactiva «Analizar apps con Play Protect», instala la app y vuelve a activarlo.</li>
+        <li>En móviles Vivo, Xiaomi u Oppo, busca también en Ajustes → Seguridad una verificación de instalaciones y desactívala mientras instalas.</li>
+      </ul>
+    </details>
+    <details>
+      <summary>Para actualizar la app</summary>
+      <p>Descarga e instala de nuevo desde el mismo botón: se instala encima y conservas tus tramos, tu progreso y tus frases.</p>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <span>Think in you funciona sin conexión y no recoge ningún dato.</span>
+  <a href="https://github.com/surikata3k/think-in-you">Código en GitHub</a>
+</footer>
+
+<script>
+(() => {
+  // ---------- Cielo según la hora del visitante
+  const skies = [
+    // [hasta la hora, a, b, c, texto claro]
+    [6,  "#10132F", "#1F2150", "#3A3470"],
+    [9,  "#3B3F7C", "#B27A9A", "#F0BFA3"],
+    [17, "#2B5E9A", "#4E86BE", "#86B4DB"],
+    [21, "#2C2A62", "#7A5E9E", "#E3967F"],
+    [24, "#10132F", "#1F2150", "#3A3470"],
+  ];
+  function paintSky(d) {
+    const h = d.getHours();
+    const s = skies.find(x => h < x[0]);
+    const r = document.documentElement.style;
+    r.setProperty("--sky-a", s[1]);
+    r.setProperty("--sky-b", s[2]);
+    r.setProperty("--sky-c", s[3]);
+  }
+
+  // ---------- Reloj
+  const tEl = document.getElementById("time"), dEl = document.getElementById("date");
+  function tick() {
+    const d = new Date();
+    tEl.textContent = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+    const ds = d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+    dEl.textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
+    paintSky(d);
+  }
+  tick();
+  setTimeout(() => { tick(); setInterval(tick, 60000); }, (60 - new Date().getSeconds()) * 1000);
+
+  // ---------- Frases (mismo fichero que la app)
+  let phrases = [
+    "Respira. Este momento es el único lugar donde la vida sucede.",
+    "La gratitud convierte lo que tienes en suficiente.",
+    "Suelta lo que no depende de ti y cuida lo que sí.",
+  ];
+  const phraseEl = document.getElementById("phrase");
+  const notif = document.getElementById("notif");
+  let last = -1;
+  function pick() {
+    if (phrases.length < 2) return phrases[0] || "";
+    let i; do { i = Math.floor(Math.random() * phrases.length); } while (i === last);
+    last = i; return phrases[i];
+  }
+  function deliver() {
+    phraseEl.textContent = pick();
+    notif.classList.remove("arrive", "hidden-until");
+    void notif.offsetWidth;            // reinicia la animación
+    notif.classList.add("arrive");
+  }
+  document.getElementById("another").addEventListener("click", deliver);
+
+  function renderList() {
+    const ul = document.getElementById("list");
+    ul.replaceChildren(...phrases.map(t => { const li = document.createElement("li"); li.textContent = t; return li; }));
+    document.getElementById("count").textContent = `Las ${phrases.length} frases`;
+    const more = document.getElementById("more");
+    if (phrases.length > 10 && !ul.dataset.open) {
+      ul.classList.add("short");
+      more.hidden = false;
+      more.textContent = `Ver las ${phrases.length}`;
+      more.onclick = () => { ul.classList.remove("short"); ul.dataset.open = "1"; more.hidden = true; };
+    }
+    renderSeeds();
+  }
+
+  const first = new Promise(r => setTimeout(r, 900));
+  fetch("frases.txt", { cache: "no-cache" })
+    .then(r => r.ok ? r.text() : Promise.reject())
+    .then(txt => {
+      const list = txt.replace(/^﻿/, "").split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+      if (list.length) phrases = list;
+    })
+    .catch(() => {})
+    .finally(() => { renderList(); first.then(deliver); });
+
+  // ---------- Un día con tramos y horas al azar (mismo reparto que la app)
+  const windows = [[9 * 60, 13 * 60, 2], [17 * 60, 21 * 60, 2]];
+  const track = document.getElementById("track");
+  function rollDay() {
+    track.replaceChildren();
+    const times = [];
+    for (const [s, e, n] of windows) {
+      const w = document.createElement("div");
+      w.className = "win";
+      w.style.left = (s / 1440 * 100) + "%";
+      w.style.width = ((e - s) / 1440 * 100) + "%";
+      track.appendChild(w);
+      const slot = (e - s) / n;
+      for (let k = 0; k < n; k++) {
+        const from = s + Math.floor(k * slot), to = s + Math.floor((k + 1) * slot);
+        times.push(from + Math.floor(Math.random() * (to - from)));
+      }
+    }
+    times.sort((a, b) => a - b).forEach(m => {
+      const dot = document.createElement("div");
+      dot.className = "dot";
+      dot.style.left = (m / 1440 * 100) + "%";
+      track.appendChild(dot);
+    });
+    const fmt = m => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+    const t = times.map(fmt);
+    document.getElementById("times").textContent = t.slice(0, -1).join(", ") + " y " + t.at(-1);
+  }
+  rollDay();
+  document.getElementById("reroll").addEventListener("click", rollDay);
+
+  // ---------- Aprendizaje gradual
+  const seeds = document.getElementById("seeds"), slider = document.getElementById("day"), label = document.getElementById("dayLabel");
+  function renderSeeds() {
+    const total = phrases.length;
+    slider.max = Math.max(1, total - 2);
+    const day = Math.min(+slider.value, +slider.max);
+    const active = Math.min(total, 2 + day);
+    if (seeds.children.length !== total) {
+      seeds.replaceChildren(...Array.from({ length: total }, () => { const s = document.createElement("span"); s.className = "seed"; return s; }));
+    }
+    [...seeds.children].forEach((s, i) => {
+      s.classList.toggle("on", i < active);
+      s.classList.toggle("fresh", day === 1 ? i < 3 : i === active - 1);
+    });
+    label.textContent = `Día ${day}`;
+    slider.setAttribute("aria-valuetext", `Día ${day}: ${active} frases en práctica de ${total}`);
+  }
+  slider.addEventListener("input", renderSeeds);
+  renderSeeds();
+})();
+</script>
+</body>
+</html>

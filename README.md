@@ -36,7 +36,19 @@ instala la app y vuelve a activarlo. En Vivo, revisa también *Ajustes → Segur
 segundo plano. Si las frases no llegan, ve a *Ajustes → Apps → Think in you → Batería*
 y elige **Sin restricciones**.
 
-## Cambiar las frases de serie
+## Cambiar las frases
 
-Están en `app/src/main/assets/frases.txt`, una por línea. Si cambias el archivo,
-desinstala la app antes de instalar la nueva versión (las frases de serie se cargan solo la primera vez).
+Las frases están en [`docs/frases.txt`](docs/frases.txt), una por línea (las que empiezan
+por `#` se ignoran). Edítalo directamente en GitHub (icono del lápiz) y guarda:
+
+- **La app** descarga el fichero cada vez que se abre. Las frases que ya tenías
+  conservan su progreso; las nuevas entran en práctica antes que las demás; las que
+  quites desaparecen. Las frases que añadas desde la propia app no se tocan nunca.
+  GitHub puede tardar hasta 5 minutos en servir la versión nueva.
+- **La web** muestra siempre la lista actual.
+- El APK incluye una copia del fichero para la primera vez o cuando no hay conexión.
+
+## Web
+
+La página está en `docs/index.html` y se publica con GitHub Pages en
+https://surikata3k.github.io/think-in-you/

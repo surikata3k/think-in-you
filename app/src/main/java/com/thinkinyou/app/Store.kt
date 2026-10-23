@@ -14,6 +14,10 @@ data class Phrase(
     var shown: Int = 0,
     var introducedDay: Long = -1,
     var lastShown: Long = 0,
+    /** true = la añadió el usuario en la app (la sincronización no la toca). */
+    var custom: Boolean = false,
+    /** true = llegó en una actualización del fichero; entra en práctica antes que las demás. */
+    var fresh: Boolean = false,
 ) {
     val introduced get() = introducedDay >= 0
 }
@@ -68,8 +72,9 @@ class Store(private val ctx: Context) {
             Phrase(
                 o.getLong("id"), o.getString("t"), o.optInt("n"),
                 o.optLong("d", -1), o.optLong("l"),
+                o.optBoolean("c"), o.optBoolean("f"),
             )
-        }.toMutableList()
+        }.toMutableList().also { migrateCustomFlag(it) }
     }
 
     fun savePhrases(list: List<Phrase>) {
@@ -78,15 +83,19 @@ class Store(private val ctx: Context) {
             arr.put(
                 JSONObject().put("id", it.id).put("t", it.text).put("n", it.shown)
                     .put("d", it.introducedDay).put("l", it.lastShown)
+                    .put("c", it.custom).put("f", it.fresh)
             )
         }
         prefs.edit().putString("phrases", arr.toString()).apply()
     }
 
+    private fun bundledLines(): List<String> =
+        parseLines(ctx.assets.open("frases.txt").bufferedReader(Charsets.UTF_8).readText())
+
     private fun seedFromAssets(): MutableList<Phrase> {
-        val lines = ctx.assets.open("frases.txt").bufferedReader(Charsets.UTF_8).readLines()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() && !it.startsWith("#") }
+        val lines = bundledLines()
+        prefs.edit().putBoolean("migratedCustom", true)
+            .putInt("remoteHash", lines.joinToString("\n").hashCode()).apply()
         var id = 1L
         val list = lines.map { Phrase(id++, it) }.toMutableList()
         prefs.edit().putLong("nextId", id).apply()
@@ -99,7 +108,7 @@ class Store(private val ctx: Context) {
         val list = phrases()
         val id = prefs.getLong("nextId", (list.maxOfOrNull { it.id } ?: 0) + 1)
         prefs.edit().putLong("nextId", id + 1).apply()
-        list.add(Phrase(id, text.trim(), introducedDay = today()))
+        list.add(Phrase(id, text.trim(), introducedDay = today(), custom = true))
         savePhrases(list)
     }
 
@@ -115,6 +124,74 @@ class Store(private val ctx: Context) {
         prefs.edit().remove("lastIntroDay").remove("lastPhraseId").apply()
     }
 
+    /**
+     * La versión 1.0 no distinguía las frases propias. La primera vez, se marcan
+     * como propias las que no están en el fichero que trae la app.
+     */
+    private fun migrateCustomFlag(list: MutableList<Phrase>) {
+        if (prefs.getBoolean("migratedCustom", false)) return
+        val bundled = bundledLines().map(::norm).toSet()
+        list.forEach { if (norm(it.text) !in bundled) it.custom = true }
+        prefs.edit().putBoolean("migratedCustom", true).apply()
+        savePhrases(list)
+    }
+
+    // ---------- Sincronización con el fichero del repositorio ----------
+
+    data class SyncResult(val added: Int, val removed: Int)
+
+    /**
+     * Aplica el contenido del fichero remoto:
+     * - frases que ya existían: se conservan con su progreso;
+     * - frases nuevas: se añaden y entrarán en práctica las primeras;
+     * - frases que ya no están en el fichero: se eliminan (salvo las propias).
+     * Devuelve null si el fichero no ha cambiado desde la última vez.
+     */
+    fun syncFrom(content: String): SyncResult? {
+        val lines = parseLines(content)
+        if (lines.isEmpty()) return null // fichero vacío o erróneo: no borrar nada
+        val hash = lines.joinToString("\n").hashCode()
+        if (prefs.getInt("remoteHash", 0) == hash && prefs.contains("remoteHash")) {
+            prefs.edit().putLong("lastSync", System.currentTimeMillis()).apply()
+            return null
+        }
+
+        val list = phrases()
+        val byText = list.associateBy { norm(it.text) }
+        val wanted = lines.map(::norm).toSet()
+        var nextId = prefs.getLong("nextId", (list.maxOfOrNull { it.id } ?: 0) + 1)
+
+        val result = mutableListOf<Phrase>()
+        // Orden del fichero para las frases compartidas, propias al final
+        var added = 0
+        val seen = HashSet<String>()
+        for (line in lines) {
+            val key = norm(line)
+            if (!seen.add(key)) continue
+            val existing = byText[key]
+            if (existing != null) {
+                existing.custom = false
+                result += if (existing.text == line) existing else existing.copy(text = line)
+            } else {
+                result += Phrase(nextId++, line, fresh = true)
+                added++
+            }
+        }
+        val customs = list.filter { it.custom && norm(it.text) !in wanted }
+        result += customs
+        val removed = list.size - customs.size - (result.size - customs.size - added)
+
+        savePhrases(result)
+        prefs.edit()
+            .putLong("nextId", nextId)
+            .putInt("remoteHash", hash)
+            .putLong("lastSync", System.currentTimeMillis())
+            .apply()
+        return if (added == 0 && removed == 0) null else SyncResult(added, removed)
+    }
+
+    val lastSync: Long get() = prefs.getLong("lastSync", 0)
+
     // ---------- Aprendizaje gradual ----------
 
     /**
@@ -123,14 +200,16 @@ class Store(private val ctx: Context) {
      */
     fun ensureIntroductions(list: MutableList<Phrase> = phrases()): MutableList<Phrase> {
         val day = today()
-        val pending = list.filter { !it.introduced }.shuffled().toMutableList()
+        // Las recién llegadas del fichero tienen prioridad; el resto, al azar.
+        val pending = list.filter { !it.introduced }.shuffled()
+            .sortedByDescending { it.fresh }.toMutableList()
         var changed = false
 
         if (list.none { it.introduced }) {
-            repeat(minOf(3, pending.size)) { pending.removeAt(0).introducedDay = day; changed = true }
+            repeat(minOf(3, pending.size)) { pending.removeAt(0).apply { introducedDay = day; fresh = false }; changed = true }
             prefs.edit().putLong("lastIntroDay", day).apply()
         } else if (prefs.getLong("lastIntroDay", -1) < day) {
-            repeat(minOf(newPerDay, pending.size)) { pending.removeAt(0).introducedDay = day; changed = true }
+            repeat(minOf(newPerDay, pending.size)) { pending.removeAt(0).apply { introducedDay = day; fresh = false }; changed = true }
             prefs.edit().putLong("lastIntroDay", day).apply()
         }
         if (changed) savePhrases(list)
@@ -187,5 +266,13 @@ class Store(private val ctx: Context) {
 
     companion object {
         fun today(): Long = LocalDate.now().toEpochDay()
+
+        fun parseLines(content: String): List<String> =
+            content.removePrefix("\uFEFF").lines()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() && !it.startsWith("#") }
+
+        /** Para comparar frases ignorando espacios y mayúsculas. */
+        fun norm(s: String) = s.trim().replace(Regex("\\s+"), " ").lowercase()
     }
 }

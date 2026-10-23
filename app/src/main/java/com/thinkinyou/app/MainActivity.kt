@@ -78,6 +78,25 @@ class MainActivity : Activity() {
         super.onResume()
         Scheduler.ensureScheduled(this)
         render()
+        syncPhrases(manual = false)
+    }
+
+    /** Descarga el fichero de frases del repositorio y avisa si ha cambiado algo. */
+    private fun syncPhrases(manual: Boolean) {
+        Remote.sync(this) { result, ok ->
+            if (isFinishing || isDestroyed) return@sync
+            when {
+                result != null -> {
+                    val parts = mutableListOf<String>()
+                    if (result.added > 0) parts += "${result.added} nueva(s)"
+                    if (result.removed > 0) parts += "${result.removed} retirada(s)"
+                    toast("Frases actualizadas" + if (parts.isEmpty()) "" else ": " + parts.joinToString(", "))
+                }
+                manual && ok -> toast("Las frases ya están al día")
+                manual -> toast("No se ha podido conectar. Inténtalo más tarde.")
+            }
+            render()
+        }
     }
 
     override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
@@ -262,15 +281,24 @@ class MainActivity : Activity() {
     private fun renderPhrases() {
         val card = card()
         card.addView(label("MIS FRASES"))
+        val sync = store.lastSync
+        val syncText = if (sync == 0L) "Aún no se han sincronizado con GitHub."
+        else "Sincronizadas con GitHub: " +
+            DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(sync))
         card.addView(
-            text("Añade las tuyas: entran en práctica desde hoy.", 13f, cMuted)
-                .also { it.pad(top = 4, bottom = 12) }
+            text(
+                "Se actualizan solas desde el repositorio cada vez que abres la app. " +
+                    "Las que añadas aquí entran en práctica desde hoy y no se borran al actualizar.",
+                13f, cMuted,
+            ).also { it.pad(top = 4, bottom = 4) }
         )
+        card.addView(text(syncText, 13f, cMuted).also { it.pad(bottom = 12) })
         val r = row()
         r.addView(pill("+ Añadir frase", primary = true) { addPhrase() })
         r.addView(space(10))
         r.addView(pill("Ver todas (${store.phrases().size})") { listPhrases() })
         card.addView(r)
+        card.addView(pill("↻ Actualizar ahora") { syncPhrases(manual = true) }.also { it.pad(top = 10) })
         root.addView(card)
     }
 
@@ -359,7 +387,9 @@ class MainActivity : Activity() {
         val list = store.phrases().sortedWith(
             compareByDescending<Phrase> { it.introduced }.thenByDescending { it.introducedDay }
         )
-        val items = list.map { (if (it.introduced) "● " else "○ ") + it.text }.toTypedArray()
+        val items = list.map {
+            (if (it.introduced) "● " else "○ ") + it.text + if (it.custom) "  (tuya)" else ""
+        }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("● en práctica   ○ pendientes")
             .setItems(items) { _, which ->

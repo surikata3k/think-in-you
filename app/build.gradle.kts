@@ -11,8 +11,8 @@ android {
         applicationId = "com.thinkinyou.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
     }
 
     // Firma fija: permite instalar actualizaciones encima sin perder el progreso
@@ -42,3 +42,12 @@ android {
 }
 
 // Sin dependencias externas: solo el framework de Android.
+
+// Las frases viven en docs/frases.txt (lo publica GitHub Pages y lo lee la app).
+// Se copia una versión dentro del APK como respaldo sin conexión.
+val copyFrases = tasks.register<Copy>("copyFrases") {
+    from(rootProject.file("docs/frases.txt"))
+    into(layout.buildDirectory.dir("generated/frases"))
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/frases"))
+tasks.named("preBuild") { dependsOn(copyFrases) }
