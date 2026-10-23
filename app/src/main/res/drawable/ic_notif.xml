@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de notificación (Android lo pinta en un solo color) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,3 C14.5,6 14.5,10.5 12,14 C9.5,10.5 9.5,6 12,3 Z M4,8.5 C7.5,9 10.5,12 11,16 C7.5,15.8 4.5,13 4,8.5 Z M20,8.5 C16.5,9 13.5,12 13,16 C16.5,15.8 19.5,13 20,8.5 Z M3,18 L21,18 L21,19.5 L3,19.5 Z" />
+</vector>

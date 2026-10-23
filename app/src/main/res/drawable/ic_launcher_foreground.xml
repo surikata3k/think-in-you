@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Loto sencillo: tres pétalos sobre una línea -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- pétalo central -->
+    <path
+        android:fillColor="#B7793F"
+        android:pathData="M54,32 C62,42 62,56 54,66 C46,56 46,42 54,32 Z" />
+    <!-- pétalo izquierdo -->
+    <path
+        android:fillColor="#C9925C"
+        android:pathData="M36,46 C46,48 52,57 52,67 C42,66 36,58 36,46 Z" />
+    <!-- pétalo derecho -->
+    <path
+        android:fillColor="#C9925C"
+        android:pathData="M72,46 C62,48 56,57 56,67 C66,66 72,58 72,46 Z" />
+    <!-- base -->
+    <path
+        android:fillColor="#7A5C3E"
+        android:pathData="M34,70 L74,70 C74,72 72,74 70,74 L38,74 C36,74 34,72 34,70 Z" />
+</vector>
