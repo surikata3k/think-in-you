@@ -26,6 +26,12 @@ Cada vez que se sube un cambio a `main`, GitHub compila la app y actualiza ese
 enlace automáticamente (pestaña **Actions**). Para actualizar la app basta con
 descargar e instalar de nuevo: se conserva tu progreso.
 
+**Si sale "Aplicación bloqueada para proteger tu dispositivo"** (Play Protect):
+pulsa *Más detalles → Instalar de todos modos*. Si no aparece esa opción, abre
+Play Store → tu foto → *Play Protect* → ⚙ → desactiva *Analizar apps con Play Protect*,
+instala la app y vuelve a activarlo. En Vivo, revisa también *Ajustes → Seguridad*
+(o *Gestor del teléfono*) y desactiva temporalmente la verificación de instalaciones.
+
 **Importante:** algunos móviles (Xiaomi, Huawei, Oppo, Samsung...) cierran las apps en
 segundo plano. Si las frases no llegan, ve a *Ajustes → Apps → Think in you → Batería*
 y elige **Sin restricciones**.
