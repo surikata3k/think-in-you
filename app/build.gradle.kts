@@ -15,9 +15,20 @@ android {
         versionName = "1.0"
     }
 
+    // Firma fija: permite instalar actualizaciones encima sin perder el progreso
+    signingConfigs {
+        create("fija") {
+            storeFile = file("release.jks")
+            storePassword = "thinkinyou"
+            keyAlias = "thinkinyou"
+            keyPassword = "thinkinyou"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("fija")
         }
     }
 
