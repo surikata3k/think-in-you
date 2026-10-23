@@ -17,7 +17,7 @@ tramos horarios que tú eliges, para ir interiorizándolas poco a poco.
 ## Descargar e instalar
 
 1. Desde el móvil, abre este enlace:
-   **https://github.com/surikata3k/think-in-you/releases/latest/download/ThinkInYou.apk**
+   **https://github.com/surikata3k/think-in-you/releases/download/latest/ThinkInYou.apk**
 2. Abre el archivo descargado. Android pedirá permitir "instalar apps de origen
    desconocido" para el navegador: acéptalo.
 3. Abre **Think in you** y acepta el permiso de notificaciones.
